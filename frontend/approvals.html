@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approvals — Shell Firewall</title>
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sidebar-title">Shell</div>
+        <div class="sidebar-subtitle">AI Firewall</div>
+      </div>
+    </div>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="/chat.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI Chat
+    </a>
+    <a href="/approvals.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Approvals
+    </a>
+    <div class="nav-spacer"></div>
+    <div style="padding:0 12px; margin-bottom:8px;">
+      <div class="user-pill" style="width:100%;">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div>
+          <div id="user-pill-name" style="font-size:13px;">User</div>
+          <div id="user-role" style="font-size:10px; color:var(--text-secondary); text-transform:uppercase;">Role</div>
+        </div>
+      </div>
+    </div>
+    <button class="logout-btn nav-item" style="border:none; background:none; cursor:pointer; width:100%; text-align:left; color:var(--accent-red);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </button>
+  </nav>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">Action Approval Queue</div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <div>
+        <h2 class="display-heading" style="font-size:22px;">Pending Actions</h2>
+        <p style="color:var(--text-secondary); font-size:14px; margin-top:4px;">High-risk AI actions requiring human approval</p>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div class="status-dot live"></div>
+        <span style="font-size:12px; color:var(--text-secondary);">Auto-refresh 15s</span>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" style="display:none; position:fixed; top:72px; right:24px; z-index:200;" class="banner banner-slide"></div>
+
+    <!-- Pending section -->
+    <div class="glass-card" style="padding:0; overflow:hidden; margin-bottom:16px;">
+      <div style="padding:16px 24px; border-bottom:1px solid var(--glass-border);">
+        <span class="label-text">Pending Review</span>
+        <span id="pending-count" style="margin-left:8px; background:var(--accent-orange); color:white; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px;">0</span>
+      </div>
+      <div id="pending-list" style="padding:16px;">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          <div style="font-weight:600;">No pending approvals</div>
+          <div style="font-size:13px;">All clear — nothing requires review</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All actions table -->
+    <div class="glass-card" style="padding:0; overflow:hidden;">
+      <div style="padding:16px 24px; border-bottom:1px solid var(--glass-border);">
+        <span class="label-text">All Actions</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="glass-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Requested By</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="all-actions-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:24px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(String(text || '')));
+      return div.innerHTML;
+    }
+
+    function formatMarkdown(text) {
+      let html = escapeHtml(text);
+      
+      // Code blocks
+      html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`;
+      });
+      
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      
+      // Bold
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      
+      // Headers
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      
+      // Line breaks
+      html = html.replace(/\n\n/g, '<br><br>');
+      html = html.replace(/\n/g, '<br>');
+      
+      return html;
+    }
+
+    function generateTitle(text) {
+      // Extract first line or first 60 chars as title
+      const firstLine = text.split('\n')[0];
+      const title = firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
+      return title || 'Action Request';
+    }
+
+    function toggleActionDetails(id) {
+      const details = document.getElementById(`details-${id}`);
+      const icon = document.getElementById(`icon-${id}`);
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+      } else {
+        details.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      try {
+        // Handle both ISO format and SQLite datetime format
+        const date = new Date(ts.replace(' ', 'T') + 'Z'); // Add Z to treat as UTC
+        return date.toLocaleString('en', { 
+          month:'short', 
+          day:'numeric', 
+          hour:'2-digit', 
+          minute:'2-digit',
+          hour12: true
+        });
+      } catch { return ts; }
+    }
+
+    function showToast(msg, type = 'green') {
+      const toast = document.getElementById('toast');
+      toast.className = `banner banner-${type} banner-slide`;
+      toast.textContent = msg;
+      toast.style.display = 'flex';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    async function approveAction(id) {
+      const resp = await API.approveAction(id);
+      if (resp && resp.success) { showToast('✅ Action approved successfully'); loadApprovals(); }
+      else showToast('Failed to approve action', 'red');
+    }
+
+    async function rejectAction(id) {
+      const resp = await API.rejectAction(id);
+      if (resp && resp.success) { showToast('Action rejected', 'amber'); loadApprovals(); }
+      else showToast('Failed to reject action', 'red');
+    }
+
+    async function delegateToHR(id) {
+      const resp = await API.delegateToHR(id);
+      if (resp && resp.success) { showToast('✅ Delegated to HR', 'green'); loadApprovals(); }
+      else showToast('Failed to delegate action', 'red');
+    }
+
+    async function loadApprovals() {
+      const resp = await API.getActionQueue();
+      if (!resp || !resp.success) return;
+
+      const actions = resp.data.actions || [];
+      const user = getUser(); // Use getUser() from api.js
+      const isAdmin = user && user.role === 'admin';
+      const isHR = user && user.role === 'hr';
+      const currentUserId = user ? user.id : null;
+      
+      const pending = actions.filter(a => a.status === 'PENDING');
+
+      // Pending count badge
+      document.getElementById('pending-count').textContent = pending.length;
+
+      // Pending list
+      const pendingList = document.getElementById('pending-list');
+      if (pending.length === 0) {
+        pendingList.innerHTML = `
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <div style="font-weight:600;">No pending approvals</div>
+            <div style="font-size:13px;">All clear — nothing requires review</div>
+          </div>
+        `;
+      } else {
+        pendingList.innerHTML = pending.map(a => {
+          const isOwnRequest = a.requested_by === currentUserId;
+          const title = generateTitle(a.action_text);
+          let actionButtons = '';
+          
+          if (isOwnRequest) {
+            // User's own request - show waiting message
+            actionButtons = `
+              <div style="padding:8px 16px; background:var(--surface2); border-radius:8px; font-size:12px; color:var(--text-secondary);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-orange)" stroke-width="2" style="vertical-align:middle; margin-right:6px;">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Awaiting admin approval
+              </div>
+            `;
+          } else if (isAdmin) {
+            // Admin viewing others' requests - show approve/reject/delegate buttons
+            actionButtons = `
+              <div class="approval-actions">
+                <button class="glass-btn glass-btn-green" onclick="approveAction(${a.id})" style="padding:8px 16px; font-size:13px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Approve
+                </button>
+                <button class="glass-btn glass-btn-red" onclick="rejectAction(${a.id})" style="padding:8px 16px; font-size:13px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Reject
+                </button>
+                <button class="glass-btn glass-btn-ghost" onclick="delegateToHR(${a.id})" style="padding:8px 16px; font-size:13px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                  Move to HR
+                </button>
+              </div>
+            `;
+          } else if (isHR) {
+            // HR viewing delegated requests - show approve/reject buttons only
+            actionButtons = `
+              <div class="approval-actions">
+                <button class="glass-btn glass-btn-green" onclick="approveAction(${a.id})" style="padding:8px 16px; font-size:13px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Approve
+                </button>
+                <button class="glass-btn glass-btn-red" onclick="rejectAction(${a.id})" style="padding:8px 16px; font-size:13px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Reject
+                </button>
+              </div>
+            `;
+          } else {
+            // Non-admin viewing others' requests - show nothing
+            actionButtons = `
+              <div style="padding:8px 16px; background:var(--surface2); border-radius:8px; font-size:12px; color:var(--text-secondary);">
+                Admin review required
+              </div>
+            `;
+          }
+          
+          return `
+            <div class="glass-card approval-card" style="margin-bottom:12px;">
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:8px;" onclick="toggleActionDetails('pending-${a.id}')">
+                  <svg id="icon-pending-${a.id}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform 0.2s; flex-shrink:0;">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                  <span style="font-weight:600; font-size:15px;">${escapeHtml(title)}</span>
+                </div>
+                <div id="details-pending-${a.id}" class="action-text" style="display:none; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border);">${formatMarkdown(a.action_text)}</div>
+                <div style="display:flex; gap:12px; font-size:12px; color:var(--text-secondary);">
+                  <span>${escapeHtml(a.username || 'User #' + (a.requested_by || '?'))}</span>
+                  <span>${formatTime(a.created_at)}</span>
+                  <span class="risk-badge risk-${a.risk_level || 'MEDIUM'}">${a.risk_level || 'MEDIUM'}</span>
+                </div>
+              </div>
+              ${actionButtons}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // All actions table
+      const tbody = document.getElementById('all-actions-tbody');
+      if (actions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:24px;">No actions yet</td></tr>`;
+      } else {
+        const statusColor = { 'PENDING': 'orange', 'APPROVED': 'green', 'REJECTED': 'red' };
+        tbody.innerHTML = actions.map(a => {
+          const sc = statusColor[a.status] || 'secondary';
+          const title = generateTitle(a.action_text);
+          return `
+            <tr>
+              <td style="max-width:300px; font-size:13px; line-height:1.5;">
+                <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="toggleActionDetails(${a.id})">
+                  <svg id="icon-${a.id}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform 0.2s; flex-shrink:0;">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                  <span style="font-weight:600;">${escapeHtml(title)}</span>
+                </div>
+                <div id="details-${a.id}" class="action-text" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">${formatMarkdown(a.action_text)}</div>
+              </td>
+              <td style="font-size:12px; color:var(--text-secondary);">${escapeHtml(a.username || 'User #' + (a.requested_by || '?'))}</td>
+              <td><span class="risk-badge risk-${a.risk_level || 'MEDIUM'}">${a.risk_level || 'MEDIUM'}</span></td>
+              <td><span style="font-size:12px; font-weight:700; color:var(--accent-${sc});">${a.status}</span></td>
+              <td style="font-size:12px; color:var(--text-secondary);">${formatTime(a.created_at)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = initPage('APPROVALS');
+      if (!user) return;
+      loadApprovals();
+      setInterval(loadApprovals, 15000);
+    });
+  </script>
+</body>
+</html>

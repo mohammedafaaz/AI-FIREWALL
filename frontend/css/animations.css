@@ -1,0 +1,120 @@
+/* Shell — Enterprise AI Firewall — Animation System */
+
+/* ── Page Load Stagger ────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.glass-card {
+  animation: fadeUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.glass-card:nth-child(1) { animation-delay: 0ms; }
+.glass-card:nth-child(2) { animation-delay: 60ms; }
+.glass-card:nth-child(3) { animation-delay: 120ms; }
+.glass-card:nth-child(4) { animation-delay: 180ms; }
+.glass-card:nth-child(5) { animation-delay: 240ms; }
+.glass-card:nth-child(6) { animation-delay: 300ms; }
+
+/* ── Threat Pulse Ring ────────────────────────────────────────────────── */
+@keyframes pulseRing {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ── Blocked Shake ────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60%  { transform: translateX(-8px); }
+  40%, 80%  { transform: translateX(8px); }
+}
+.blocked { animation: shake 0.4s ease; }
+
+/* ── Typing Dots ──────────────────────────────────────────────────────── */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: scale(1); opacity: 0.4; }
+  30%            { transform: scale(1.4); opacity: 1; }
+}
+
+/* ── Count-Up Animation ───────────────────────────────────────────────── */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-up { animation: countUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Banner Slide In ──────────────────────────────────────────────────── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); max-height: 0; }
+  to   { opacity: 1; transform: translateY(0); max-height: 200px; }
+}
+.banner-slide { animation: slideDown 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Fade In ──────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in { animation: fadeIn 0.3s ease both; }
+
+/* ── Pop In ───────────────────────────────────────────────────────────── */
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.pop-in { animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Message Bubble ───────────────────────────────────────────────────── */
+@keyframes messagePop {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.message-bubble { animation: messagePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Spin ─────────────────────────────────────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin { animation: spin 1s linear infinite; }
+
+/* ── Pulse Glow ───────────────────────────────────────────────────────── */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 55, 95, 0); }
+  50%       { box-shadow: 0 0 20px 4px rgba(255, 55, 95, 0.25); }
+}
+.pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+
+/* ── Shadow Reveal Highlight ──────────────────────────────────────────── */
+@keyframes highlightFlash {
+  0%, 100% { background: rgba(255, 55, 95, 0.2); }
+  50%       { background: rgba(255, 55, 95, 0.45); }
+}
+.shadow-highlight { animation: highlightFlash 1.5s ease-in-out 3; }
+
+/* ── Sidebar Nav Active Indicator ─────────────────────────────────────── */
+@keyframes navSlide {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ── Status Dot Pulse ─────────────────────────────────────────────────── */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block;
+}
+.status-dot.live {
+  background: var(--accent-green);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* ── Table Row Highlight ──────────────────────────────────────────────── */
+@keyframes rowHighlight {
+  from { background: rgba(0, 113, 227, 0.1); }
+  to   { background: transparent; }
+}
+.row-new td { animation: rowHighlight 2s ease-out both; }

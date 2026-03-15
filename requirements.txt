@@ -1,0 +1,10 @@
+flask==3.1.2
+flask-jwt-extended==4.7.1
+flask-cors==6.0.2
+bcrypt==5.0.0
+requests==2.32.3
+PyMuPDF==1.27.1
+scikit-learn==1.6.1
+sentence-transformers==5.2.3
+spacy==3.8.11
+bytez==0.7.0

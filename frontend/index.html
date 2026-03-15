@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shell — Enterprise AI Firewall</title>
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <!-- Background Blobs -->
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <div class="login-container">
+    <div class="glass-card login-card">
+      <!-- Logo -->
+      <div class="login-logo">
+        <div class="login-logo-pill">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="login-title">Shell</div>
+        <div class="login-subtitle" style="font-size:13px; color:var(--text-secondary);">Enterprise AI Firewall</div>
+      </div>
+
+      <!-- Error Banner -->
+      <div id="error-banner" class="banner banner-red" style="display:none; margin-bottom:16px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="error-text">Invalid credentials</span>
+      </div>
+
+      <!-- Form -->
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="glass-input" type="text" id="username" placeholder="Enter your username" autocomplete="username">
+      </div>
+      <div class="form-group" style="margin-bottom:24px;">
+        <label class="form-label" for="password">Password</label>
+        <input class="glass-input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+
+      <button class="glass-btn" id="login-btn" style="width:100%; justify-content:center;" onclick="handleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Sign In
+      </button>
+
+      <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--glass-border);">
+        <div class="label-text" style="margin-bottom:10px;">Demo Credentials</div>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text-secondary);">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Admin</span><code style="font-size:11px; background:rgba(0,0,0,0.05); padding:2px 8px; border-radius:4px;">admin / admin123</code>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>HR Manager</span><code style="font-size:11px; background:rgba(0,0,0,0.05); padding:2px 8px; border-radius:4px;">hr_manager / hr123</code>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Developer</span><code style="font-size:11px; background:rgba(0,0,0,0.05); padding:2px 8px; border-radius:4px;">developer / dev123</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (getToken()) window.location.replace("/dashboard.html");
+
+    async function handleLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const btn = document.getElementById('login-btn');
+      const errBanner = document.getElementById('error-banner');
+
+      if (!username || !password) {
+        showError('Please enter username and password.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-9-9"/></svg> Authenticating...`;
+      errBanner.style.display = 'none';
+
+      const resp = await API.login(username, password);
+
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In`;
+
+      if (!resp || !resp.success) {
+        showError(resp?.error || 'Authentication failed. Please check credentials.');
+        const card = document.querySelector('.login-card');
+        card.classList.remove('blocked');
+        void card.offsetWidth;
+        card.classList.add('blocked');
+        document.getElementById('password').style.borderColor = 'var(--accent-red)';
+        return;
+      }
+
+      setAuth(resp.data.token, resp.data.user);
+      window.location.replace("/dashboard.html");
+    }
+
+    function showError(msg) {
+      const errBanner = document.getElementById('error-banner');
+      document.getElementById('error-text').textContent = msg;
+      errBanner.style.display = 'flex';
+    }
+
+    // Enter key support
+    document.addEventListener('DOMContentLoaded', () => {
+      ['username', 'password'].forEach(id => {
+        document.getElementById(id).addEventListener('keydown', e => {
+          if (e.key === 'Enter') handleLogin();
+        });
+      });
+      document.getElementById('password').addEventListener('input', () => {
+        document.getElementById('password').style.borderColor = '';
+      });
+    });
+  </script>
+</body>
+</html>

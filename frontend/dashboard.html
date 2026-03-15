@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Shell Firewall</title>
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sidebar-title">Shell</div>
+        <div class="sidebar-subtitle">AI Firewall</div>
+      </div>
+    </div>
+    <a href="/dashboard.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="/chat.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI Chat
+    </a>
+    <a href="/replay.html" class="nav-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Threat Replay
+        </a>
+        <a href="/approvals.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Approvals
+    </a>
+    <div class="nav-spacer"></div>
+    <div style="padding:0 12px; margin-bottom:8px;">
+      <div class="user-pill" style="width:100%;">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div>
+          <div id="user-pill-name" style="font-size:13px; line-height:1.2;">User</div>
+          <div id="user-role" style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Role</div>
+        </div>
+      </div>
+    </div>
+    <button class="logout-btn nav-item" style="border:none; background:none; cursor:pointer; width:100%; text-align:left; color:var(--accent-red);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </button>
+  </nav>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">
+      Threat Intelligence Dashboard
+      <span class="status-dot live" style="margin-left:8px; animation: blink 2s ease-in-out infinite;"></span>
+      <span style="font-size:12px; font-weight:400; color:var(--text-secondary); margin-left:4px;">Live</span>
+    </div>
+    <button id="clear-data-btn" class="glass-btn" style="display:none; padding:8px 12px; background:var(--accent-red); border:none; border-radius:8px;" onclick="clearAllData()" title="Clear all data">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+    </button>
+    <div class="user-pill">
+      <div class="user-avatar" id="user-avatar-top" style="width:24px; height:24px; font-size:10px;">A</div>
+      <span id="user-pill-name-top" style="font-size:13px;">User</span>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Stats Row -->
+    <div class="stats-grid" style="grid-template-columns: repeat(6, 1fr);">
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-total" style="color:var(--accent);">0</div>
+        <div class="stat-label">Total Threats</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-blocked" style="color:var(--accent-red);">0</div>
+        <div class="stat-label">Blocked Today</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-sessions" style="color:var(--accent-blue);">0</div>
+        <div class="stat-label">Active Sessions</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-pending" style="color:var(--accent-orange);">0</div>
+        <div class="stat-label">Pending Approvals</div>
+      </div>
+      <div class="glass-card stat-card" id="personal-risk-card" style="display:none;">
+        <div class="stat-label" style="margin-bottom:8px;">Your Risk Level</div>
+        <div id="stat-personal-risk"><span class="risk-badge risk-LOW">LOW</span></div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-label" style="margin-bottom:8px;">Overall Risk Level</div>
+        <div id="stat-risk"><span class="risk-badge risk-LOW">LOW</span></div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <div class="glass-card chart-card">
+        <div class="chart-title">Threat Type Breakdown</div>
+        <div style="height:240px; position:relative;">
+          <canvas id="doughnut-chart"></canvas>
+        </div>
+      </div>
+      <div class="glass-card chart-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <div class="chart-title" style="margin:0;">Threats Over Time (7 Days)</div>
+          <button id="toggle-chart-view" class="glass-btn glass-btn-ghost" style="padding:6px 12px; font-size:10px;" title="Toggle detailed view">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+            Details
+          </button>
+        </div>
+        <div style="height:240px; position:relative;">
+          <canvas id="line-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bar Chart -->
+    <div class="glass-card chart-card" style="margin-bottom:16px;">
+      <div class="chart-title">Threats Per Module</div>
+      <div style="height:200px; position:relative;">
+        <canvas id="bar-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Threat Users (Admin & HR only) -->
+    <div id="top-threat-section" style="display:none; margin-bottom:16px;">
+      <div class="glass-card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px 24px; border-bottom:1px solid var(--glass-border);">
+          <span class="label-text">Top Threat Users</span>
+        </div>
+        <div style="padding:16px;">
+          <div id="top-threat-list" style="display:grid; gap:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events Table -->
+    <div class="glass-card" style="padding:0; overflow:hidden;">
+      <div style="padding:20px 24px 16px; border-bottom:1px solid var(--glass-border); display:flex; align-items:center; justify-content:space-between;">
+        <div class="chart-title" style="margin:0;">Recent Threat Events</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <input type="text" id="user-search" placeholder="Search by username..." class="glass-input" style="width:200px; padding:8px 12px; font-size:12px; display:none;">
+          <div class="status-dot live"></div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="glass-table">
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>User</th>
+              <th>Prompt Preview</th>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Replay</th>
+            </tr>
+          </thead>
+          <tbody id="events-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:32px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

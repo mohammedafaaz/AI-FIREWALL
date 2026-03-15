@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat — Shell Firewall</title>
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <style>
+    body { overflow: hidden; }
+    .chat-page { display: flex; height: 100vh; }
+    .chat-main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding-top: var(--topbar-height);
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .chat-input-area {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+    #chat-input {
+      resize: none;
+      min-height: 52px;
+      max-height: 160px;
+      overflow-y: auto;
+      background: var(--surface2);
+      color: var(--text);
+    }
+    #chat-input-box {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .security-indicators {
+      margin-top: 12px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+    .security-indicators span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .security-indicators svg {
+      width: 14px;
+      height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sidebar-title">Shell</div>
+        <div class="sidebar-subtitle">AI Firewall</div>
+      </div>
+    </div>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="/chat.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI Chat
+    </a>
+    <a href="/approvals.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Approvals
+    </a>
+    <div class="nav-spacer"></div>
+    <div style="padding:0 12px; margin-bottom:8px;">
+      <div class="user-pill" style="width:100%;">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div>
+          <div id="user-pill-name" style="font-size:13px;">User</div>
+          <div id="user-role" style="font-size:10px; color:var(--text-secondary); text-transform:uppercase;">Role</div>
+        </div>
+      </div>
+    </div>
+    <button class="logout-btn nav-item" style="border:none; background:none; cursor:pointer; width:100%; text-align:left; color:var(--accent-red);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </button>
+  </nav>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">Protected AI Chat</div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <button id="dlp-debug-toggle" class="glass-btn glass-btn-ghost" style="padding:8px 16px; font-size:11px; display:none;" title="Show masked PII data (Admin only)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span id="dlp-debug-label">Show Masked Data</span>
+      </button>
+      <button id="clear-chat-btn" class="glass-btn glass-btn-ghost" style="padding:8px 16px; font-size:11px;" title="Clear chat history">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+        Clear Chat
+      </button>
+      <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Chat Main -->
+  <div class="chat-main">
+    <!-- Messages -->
+    <div id="chat-messages" class="chat-messages">
+      <!-- Messages injected by chat.js -->
+    </div>
+    
+    <!-- Banner Area (between messages and input) -->
+    <div id="banner-area" style="padding:0 32px;"></div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+      <div id="chat-input-box">
+        <textarea
+          id="chat-input"
+          class="glass-input"
+          placeholder="Send a message... (Enter to send, Shift+Enter for new line)"
+          rows="1"
+          style="flex:1;"
+        ></textarea>
+        <button id="send-btn" class="glass-btn" style="padding:14px 20px; flex-shrink:0;" title="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+
+      <div style="margin-top:8px; font-size:11px; color:var(--text-secondary); display:flex; gap:16px;">
+        <span style="display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent5)" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Shadow
+        </span>
+        <span style="display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          Injection
+        </span>
+        <span style="display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent4)" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          Gaslighting
+        </span>
+        <span style="display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent3)" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          DLP
+        </span>
+        <span style="display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30d158" stroke-width="2">
+            <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Approval
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/shadow.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>

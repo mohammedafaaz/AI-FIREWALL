@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threat Replay — Shell Firewall</title>
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <style>
+    /* ── Layout ── */
+    .replay-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── Attack selector panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .refresh-btn {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .refresh-btn.spinning svg { animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Event list ── */
+    .event-list { padding: 8px; max-height: 520px; overflow-y: auto; }
+    .event-list::-webkit-scrollbar { width: 4px; }
+    .event-list::-webkit-scrollbar-track { background: transparent; }
+    .event-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .event-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.18s;
+      margin-bottom: 4px;
+    }
+    .event-item:hover { background: rgba(255,255,255,0.03); border-color: var(--border); }
+    .event-item.selected {
+      background: rgba(0,255,224,0.05);
+      border-color: rgba(0,255,224,0.3);
+      box-shadow: 0 0 16px rgba(0,255,224,0.06);
+    }
+
+    .event-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .module-chip {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .event-item-prompt {
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .event-item-meta {
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      gap: 10px;
+    }
+
+    .empty-hint {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    /* ── Replay main panel ── */
+    .replay-main { display: flex; flex-direction: column; gap: 14px; }
+
+    .prompt-display {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+
+    .prompt-display-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .prompt-display-text {
+      font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+      font-size: 13px;
+      color: var(--accent2);
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .prompt-display-text.idle {
+      color: var(--muted);
+      font-family: inherit;
+      font-style: italic;
+    }
+
+    /* ── Controls bar ── */
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .speed-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .speed-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .speed-btn {
+      padding: 5px 11px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .speed-btn:hover { border-color: rgba(0,255,224,0.3); color: var(--text); }
+    .speed-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,255,224,0.08);
+    }
+
+    .btn-play {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      background: rgba(0,255,224,0.1);
+      border: 1px solid rgba(0,255,224,0.35);
+      border-radius: 9px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-play:hover:not(:disabled) {
+      background: rgba(0,255,224,0.18);
+      box-shadow: 0 0 24px rgba(0,255,224,0.15);
+    }
+    .btn-play:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      height: 3px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent4));
+      border-radius: 3px;
+      transition: width 0.35s ease;
+      box-shadow: 0 0 10px rgba(0,255,224,0.5);
+    }
+
+    /* ── Pipeline steps ── */
+    .pipeline-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .pipeline-step {
+      display: grid;
+      grid-template-columns: 48px 1fr 64px 72px;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .pipeline-step:last-child { border-bottom: none; }
+
+    /* scan shimmer */
+    .pipeline-step::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; bottom: 0;
+      width: 60%;
+      background: linear-gradient(90deg, transparent, rgba(0,255,224,0.06), transparent);
+      transition: none;
+    }
+    .pipeline-step.scanning::after {
+      animation: shimmer 0.9s ease-in-out;
+    }
+    @keyframes shimmer {
+      0% { left: -60%; }
+      100% { left: 110%; }
+    }
+
+    .pipeline-step.s-idle   { background: transparent; }
+    .pipeline-step.s-active { background: rgba(0,255,224,0.04); }
+    .pipeline-step.s-passed { background: rgba(48,209,88,0.04); }
+    .pipeline-step.s-blocked {
+      background: rgba(255,76,106,0.07);
+      animation: blockFlash 0.45s ease-out;
+    }
+    @keyframes blockFlash {
+      0%   { background: rgba(255,76,106,0.22); }
+      100% { background: rgba(255,76,106,0.07); }
+    }
+
+    /* number bubble */
+    .step-num {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--surface2);
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+    .s-active  .step-num { border-color: var(--accent);  color: var(--accent);  background: rgba(0,255,224,0.12); animation: numPulse 0.7s ease infinite alternate; }
+    .s-passed  .step-num { border-color: #30d158; color: #30d158; background: rgba(48,209,88,0.1); }
+    .s-blocked .step-num { border-color: var(--accent2); color: var(--accent2); background: rgba(255,76,106,0.12); }
+    @keyframes numPulse {
+      from { box-shadow: 0 0 0 0 rgba(0,255,224,0.35); }
+      to   { box-shadow: 0 0 0 7px rgba(0,255,224,0); }
+    }
+
+    .step-body {}
+    .step-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; transition: color 0.3s; }
+    .step-desc { font-size: 11px; color: var(--muted); transition: color 0.3s; }
+    .s-active  .step-name { color: var(--accent); }
+    .s-passed  .step-name { color: #30d158; }
+    .s-blocked .step-name { color: var(--accent2); }
+    .s-active  .step-desc,
+    .s-passed  .step-desc,
+    .s-blocked .step-desc { color: var(--text); }
+
+    /* score column */
+    .step-score {
+      font-family: 'SF Mono', 'Fira Mono', monospace;
+      font-size: 16px; font-weight: 700;
+      text-align: right;
+      color: var(--muted);
+      transition: color 0.3s;
+    }
+    .s-active  .step-score { color: var(--accent); }
+    .s-passed  .step-score { color: #30d158; }
+    .s-blocked .step-score { color: var(--accent2); }
+
+    /* status badge */
+    .step-badge {
+      font-size: 9px; font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 5px;
+      text-align: center;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+    .s-idle    .step-badge { background: transparent; color: transparent; border: 1px solid transparent; }
+    .s-active  .step-badge { background: rgba(0,255,224,0.1);  color: var(--accent);  border: 1px solid rgba(0,255,224,0.25); }
+    .s-passed  .step-badge { background: rgba(48,209,88,0.12); color: #30d158; border: 1px solid rgba(48,209,88,0.3); }
+    .s-blocked .step-badge { background: rgba(255,76,106,0.14);color: var(--accent2); border: 1px solid rgba(255,76,106,0.35); }
+
+    /* ── Verdict ── */
+    .verdict {
+      border-radius: 13px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+    .verdict.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .verdict.v-blocked {
+      background: rgba(255,76,106,0.08);
+      border: 1px solid rgba(255,76,106,0.35);
+      box-shadow: 0 4px 30px rgba(255,76,106,0.1);
+    }
+    .verdict.v-allowed {
+      background: rgba(48,209,88,0.06);
+      border: 1px solid rgba(48,209,88,0.28);
+      box-shadow: 0 4px 30px rgba(48,209,88,0.08);
+    }
+
+    .verdict-emoji {
+      font-size: 32px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .verdict-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+    .v-blocked .verdict-title { color: var(--accent2); }
+    .v-allowed .verdict-title { color: #30d158; }
+
+    .verdict-detail {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── Dots loader ── */
+    .dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+    .dots span {
+      width: 3px; height: 3px; border-radius: 50%;
+      background: var(--accent);
+      animation: dotBounce 0.5s ease-in-out infinite alternate;
+    }
+    .dots span:nth-child(2) { animation-delay: 0.1s; }
+    .dots span:nth-child(3) { animation-delay: 0.2s; }
+    @keyframes dotBounce {
+      from { opacity: 0.3; transform: translateY(0); }
+      to   { opacity: 1;   transform: translateY(-3px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sidebar-title">Shell</div>
+        <div class="sidebar-subtitle">AI Firewall</div>
+      </div>
+    </div>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="/chat.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI Chat
+    </a>
+    <a href="/approvals.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Approvals
+    </a>
+    <a href="/replay.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Threat Replay
+    </a>
+    <div class="nav-spacer"></div>
+    <div style="padding:0 12px; margin-bottom:8px;">
+      <div class="user-pill" style="width:100%;">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div>
+          <div id="user-pill-name" style="font-size:13px; line-height:1.2;">User</div>
+          <div id="user-role" style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Role</div>
+        </div>
+      </div>
+    </div>
+    <button class="logout-btn nav-item" style="border:none;background:none;cursor:pointer;width:100%;text-align:left;color:var(--accent-red);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </button>
+  </nav>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:8px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Threat Replay
+    </div>
+    <div class="user-pill">
+      <div class="user-avatar" id="user-avatar-top" style="width:24px;height:24px;font-size:10px;">A</div>
+      <span id="user-pill-name-top" style="font-size:13px;">User</span>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="replay-grid">
+
+      <!-- LEFT: Attack Selector -->
+      <div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Blocked Attacks
+            </div>
+            <button class="refresh-btn" id="refresh-btn" onclick="loadEvents()" title="Refresh">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
+          <div class="event-list" id="event-list">
+            <div class="empty-hint">Loading recent attacks...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Replay Engine -->
+      <div class="replay-main">
+
+        <!-- Prompt display -->
+        <div class="prompt-display">
+          <div class="prompt-display-label">Intercepted Prompt</div>
+          <div class="prompt-display-text idle" id="prompt-text">
+            ← Select an attack to begin
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn-play" id="btn-play" onclick="startReplay()" disabled>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Replay Attack
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <!-- Pipeline -->
+        <div class="pipeline-wrap" id="pipeline"></div>
+
+        <!-- Verdict -->
+        <div class="verdict" id="verdict">
+          <div class="verdict-emoji" id="verdict-emoji"></div>
+          <div>
+            <div class="verdict-title" id="verdict-title">—</div>
+            <div class="verdict-detail" id="verdict-detail">—</div>
+          </div>
+        </div>
+
+      </div><!-- /replay-main -->
+    </div><!-- /replay-grid -->
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+  // ── Pipeline definition ─────────────────────────────────────────────────
+  const STEPS = [
+    { id:'SHADOW',         icon:'',  name:'Shadow Prompt Reveal',    desc:'' },
+    { id:'TOKEN_SMUGGLING',icon:'', name:'Token Smuggling',         desc:'' },
+    { id:'INJECTION',      icon:'',  name:'Prompt Injection',        desc:'' },
+    { id:'DLP_IN',         icon:'',  name:'DLP — Input Scan',        desc:'' },
+    { id:'AI',             icon:'',  name:'AI Call',                 desc:'' },
+    { id:'BEHAVIOR',       icon:'',  name:'Behavior Monitor',        desc:'' },
+    { id:'DLP',            icon:'',  name:'DLP — Response Scan',     desc:'' },
+    { id:'ACTION',         icon:'',  name:'Action Approval',         desc:'' },
+  ]
+
+  const MODULE_COLORS = {
+    INJECTION:'var(--accent2)', TOKEN_SMUGGLING:'#FF9F0A',
+    SHADOW:'#5AC8FA', DLP:'var(--accent5)', DLP_IN:'var(--accent5)',
+    BEHAVIOR:'#30d158', ACTION:'var(--accent3)', AI:'var(--accent)'
+  }
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let selected  = null
+  let replaying = false
+  let stepDelay = 450
+
+  // ── Boot ─────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    const user = initPage('REPLAY')
+    if (!user) return
+    buildPipeline()
+    await loadEvents()
+    // Auto-select and replay if ?id= param present (from dashboard ▶ button)
+    const urlId = new URLSearchParams(window.location.search).get('id')
+    if (urlId) {
+      // Try exact match first, fall back to first blocked event
+      const match = document.querySelector('.event-item[data-id="' + urlId + '"]')
+      const target = match || document.querySelector('.event-item')
+      if (target) {
+        target.click()
+        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        setTimeout(() => startReplay(), 700)
+      }
+    }
+  })
+
+  // ── Build static pipeline DOM ─────────────────────────────────────────────
+  function buildPipeline() {
+    const wrap = document.getElementById('pipeline')
+    wrap.innerHTML = STEPS.map((s, i) => `
+      <div class="pipeline-step s-idle" id="step-${s.id}">
+        <div class="step-num">${i + 1}</div>
+        <div class="step-body">
+          <div class="step-name">${s.name}</div>
+          <div class="step-desc">${s.desc}</div>
+        </div>
+        <div class="step-score" id="score-${s.id}">—</div>
+        <div class="step-badge" id="badge-${s.id}">IDLE</div>
+      </div>
+    `).join('')
+  }
+
+  // ── Load events ───────────────────────────────────────────────────────────
+  async function loadEvents() {
+    const btn = document.getElementById('refresh-btn')
+    btn.classList.add('spinning')
+    const list = document.getElementById('event-list')
+    list.innerHTML = '<div class="empty-hint">Loading...</div>'
+
+    // Use dedicated endpoint — returns only blocked events, up to 50
+    const resp = await apiFetch('/api/replay/events')
+    btn.classList.remove('spinning')
+
+    if (!resp?.success) {
+      list.innerHTML = '<div class="empty-hint">Could not load events.<br>Is the server running?</div>'
+      return
+    }
+
+    const events = (resp.data.events || [])
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    if (events.length === 0) {
+      list.innerHTML = '<div class="empty-hint">No blocked attacks yet.<br>Send a test attack via the chat<br>then refresh here.</div>'
+      return
+    }
+
+    list.innerHTML = ''
+    events.slice(0, 20).forEach(evt => {
+      const color = MODULE_COLORS[evt.module] || 'var(--accent)'
+      const time  = formatTime(evt.timestamp)
+      const score = Math.round((evt.score || 0) * 100)
+      const el = document.createElement('div')
+      el.className = 'event-item'
+      el.dataset.id = evt.id
+      el.innerHTML = `
+        <div class="event-item-top">
+          <span class="module-chip" style="background:${color}22;color:${color};border:1px solid ${color}44">⚡ ${evt.module}</span>
+          <span style="font-size:10px;color:var(--muted)">${score}% risk</span>
+        </div>
+        <div class="event-item-prompt">${esc(evt.prompt_text || 'Unknown prompt')}</div>
+        <div class="event-item-meta">
+          <span>⏱ ${time}</span>
+          <span>👤 ${esc(evt.username || 'User #' + evt.user_id)}</span>
+        </div>
+      `
+      el.onclick = () => pick(evt, el)
+      list.appendChild(el)
+    })
+  }
+
+  // ── Select event ──────────────────────────────────────────────────────────
+  function pick(evt, el) {
+    document.querySelectorAll('.event-item').forEach(e => e.classList.remove('selected'))
+    el.classList.add('selected')
+    selected = evt
+
+    const pt = document.getElementById('prompt-text')
+    pt.textContent = evt.prompt_text || 'Unknown prompt'
+    pt.classList.remove('idle')
+
+    resetSteps()
+    document.getElementById('btn-play').disabled = false
+    document.getElementById('verdict').classList.remove('show')
+  }
+
+  // ── Reset all steps to idle ───────────────────────────────────────────────
+  function resetSteps() {
+    STEPS.forEach(s => {
+      const el = document.getElementById(`step-${s.id}`)
+      el.className = 'pipeline-step s-idle'
+      document.getElementById(`score-${s.id}`).textContent = '—'
+      document.getElementById(`badge-${s.id}`).textContent = 'IDLE'
+    })
+    document.getElementById('progress-fill').style.width = '0%'
+    document.getElementById('verdict').classList.remove('show', 'v-blocked', 'v-allowed')
+  }
+
+  // ── Replay ────────────────────────────────────────────────────────────────
+  async function startReplay() {
+    if (!selected || replaying) return
+    replaying = true
+
+    const btn = document.getElementById('btn-play')
+    btn.disabled = true
+    resetSteps()
+
+    const blockedModule = selected.module
+    const blockedScore  = selected.score || 0.85
+
+    // Map server module names → pipeline step IDs
+    // Server can return: SHADOW, TOKEN_SMUGGLING, INJECTION, DLP, BEHAVIOR, ACTION
+    // Pipeline step IDs: SHADOW, TOKEN_SMUGGLING, INJECTION, DLP_IN, AI, BEHAVIOR, DLP, ACTION
+    const MODULE_TO_STEP = {
+      'SHADOW':          'SHADOW',
+      'TOKEN_SMUGGLING': 'TOKEN_SMUGGLING',
+      'INJECTION':       'INJECTION',
+      'DLP':             'DLP',       // output DLP (step 7)
+      'DLP_IN':          'DLP_IN',    // input DLP (step 4)
+      'BEHAVIOR':        'BEHAVIOR',
+      'ACTION':          'ACTION',
+    }
+    const stepId   = MODULE_TO_STEP[blockedModule] || blockedModule
+    const blockIdx = STEPS.findIndex(s => s.id === stepId)
+    const stopAt   = blockIdx >= 0 ? blockIdx : 2  // default to INJECTION if unknown
+
+    for (let i = 0; i < STEPS.length; i++) {
+      const s   = STEPS[i]
+      const el  = document.getElementById(`step-${s.id}`)
+      const sc  = document.getElementById(`score-${s.id}`)
+      const bg  = document.getElementById(`badge-${s.id}`)
+
+      // ── Activate ──
+      el.className = 'pipeline-step s-active scanning'
+      bg.textContent = 'Scanning'
+      sc.textContent = ''
+
+      // scanning dots
+      sc.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>'
+
+      document.getElementById('progress-fill').style.width = `${((i + 0.4) / STEPS.length) * 100}%`
+      await sleep(stepDelay)
+
+      if (i === stopAt) {
+        // ── BLOCKED ──
+        el.className = 'pipeline-step s-blocked'
+        sc.textContent = `${Math.round(blockedScore * 100)}%`
+        bg.textContent = 'BLOCKED'
+
+        document.getElementById('progress-fill').style.width = '100%'
+        await sleep(stepDelay * 0.5)
+
+        showVerdict(false, blockedModule, blockedScore, selected.reason)
+        break
+      } else {
+        // ── PASSED ──
+        el.className = 'pipeline-step s-passed'
+        sc.textContent = s.id === 'AI' ? 'OK' : `${Math.floor(Math.random() * 12)}%`
+        bg.textContent = 'PASSED'
+
+        document.getElementById('progress-fill').style.width = `${((i + 1) / STEPS.length) * 100}%`
+
+        if (i === STEPS.length - 1) {
+          // All passed — allowed
+          await sleep(stepDelay * 0.4)
+          showVerdict(true, null, 0, null)
+        }
+      }
+      await sleep(stepDelay * 0.15)
+    }
+
+    replaying = false
+    btn.disabled = false
+  }
+
+  // ── Verdict ───────────────────────────────────────────────────────────────
+  function showVerdict(allowed, module, score, reason) {
+    const v  = document.getElementById('verdict')
+    const em = document.getElementById('verdict-emoji')
+    const ti = document.getElementById('verdict-title')
+    const de = document.getElementById('verdict-detail')
+
+    v.classList.remove('v-blocked', 'v-allowed')
+
+    if (allowed) {
+      v.classList.add('v-allowed')
+      em.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#30d158" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+      ti.textContent = 'Request Allowed'
+      de.textContent = 'All 8 security layers passed. Response delivered to user.'
+    } else {
+      v.classList.add('v-blocked')
+      em.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+      ti.textContent = `Blocked by ${module} Module`
+      de.textContent = `Threat score: ${Math.round(score * 100)}%  ·  ${reason || 'Malicious intent detected'}  ·  Mutation Replay triggered in background`
+    }
+
+    // small delay then bounce in
+    setTimeout(() => v.classList.add('show'), 80)
+  }
+
+  // ── Speed ─────────────────────────────────────────────────────────────────
+
+  // ── Utils ─────────────────────────────────────────────────────────────────
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+  const esc = t => { const d = document.createElement('div'); d.textContent = String(t||''); return d.innerHTML }
+
+  function formatTime(ts) {
+    if (!ts) return ''
+    try {
+      return new Date(ts.replace(' ','T')+'Z')
+        .toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+    } catch { return ts }
+  }
+  </script>
+</body>
+</html>
